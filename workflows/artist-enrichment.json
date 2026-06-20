@@ -1,0 +1,92 @@
+{
+  "name": "ScenePulse — Artist Enrichment (scaffold)",
+  "meta": {
+    "description": "Starter scaffold ONLY. ScenePulse fires the 'artist.enrich' event when a musician's Spotify URL is added/changed. You build the middle (Cyanite, Musixmatch, Songstats, etc.) and post results back to the two write-back nodes. The trigger node and the two write-back nodes are the fixed ScenePulse contract — keep their URLs/headers as-is."
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scenepulse/artist-enrich",
+        "options": {}
+      },
+      "id": "webhook-artist-enrich",
+      "name": "On Artist Enrich",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 420],
+      "webhookId": "scenepulse-artist-enrich",
+      "notes": "ScenePulse POSTs here. Body = { event: 'artist.enrich', payload: { artistId, artistName, spotifyUrl }, sentAt }. Copy this node's Production URL into ScenePulse secret N8N_WEBHOOK_URL."
+    },
+    {
+      "parameters": {},
+      "id": "build-here",
+      "name": "⬇ BUILD YOUR FLOW HERE",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [460, 420],
+      "notes": "Add your provider nodes between this node and the write-back nodes:\n- Cyanite: paste Spotify URL -> audio tags (mood/energy/genre/bpm/key) -> feed 'Write Audio Analysis'.\n- Musixmatch: fetch lyrics for artistName -> themes/keywords/sentiment -> feed 'Write Lyric Analysis'.\n- Songstats / JamBase: optional, post to their own ScenePulse endpoints when ready.\nartistId is available as {{ $('On Artist Enrich').item.json.body.payload.artistId }}."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SCENEPULSE_API_URL }}/api/webhooks/n8n/artist.audio_analysis",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{ $env.N8N_WEBHOOK_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ artistId: $('On Artist Enrich').item.json.body.payload.artistId, energy: null, danceability: null, valence: null, acousticness: null, instrumentalness: null, tempo: null, loudness: null, musicalKey: null, mode: null, genres: [], moods: [], source: 'cyanite' }) }}",
+        "options": {}
+      },
+      "id": "writeback-audio",
+      "name": "Write Audio Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 300],
+      "notes": "FIXED ScenePulse contract. Replace the null/[] placeholders with values mapped from your Cyanite node. Only artistId is required; everything else is optional. genres[] and moods[] auto-become discovery tags."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SCENEPULSE_API_URL }}/api/webhooks/n8n/artist.lyric_analysis",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{ $env.N8N_WEBHOOK_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ artistId: $('On Artist Enrich').item.json.body.payload.artistId, themes: [], keywords: [], sentiment: null, sentimentScore: null, language: null, summary: null, source: 'musixmatch' }) }}",
+        "options": {}
+      },
+      "id": "writeback-lyric",
+      "name": "Write Lyric Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 540],
+      "notes": "FIXED ScenePulse contract. Replace the null/[] placeholders with values mapped from your Musixmatch node. Only artistId is required. themes[] auto-become discovery tags."
+    }
+  ],
+  "connections": {
+    "On Artist Enrich": {
+      "main": [[{ "node": "⬇ BUILD YOUR FLOW HERE", "type": "main", "index": 0 }]]
+    },
+    "⬇ BUILD YOUR FLOW HERE": {
+      "main": [
+        [
+          { "node": "Write Audio Analysis", "type": "main", "index": 0 },
+          { "node": "Write Lyric Analysis", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "scenepulse" }]
+}

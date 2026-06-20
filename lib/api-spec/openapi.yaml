@@ -1,0 +1,1567 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: profiles
+    description: User profile operations
+  - name: artists
+    description: Artist operations
+  - name: venues
+    description: Venue operations
+  - name: events
+    description: Event operations
+  - name: discovery
+    description: Map and dashboard discovery operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /profiles/{id}:
+    get:
+      operationId: getProfile
+      tags: [profiles]
+      summary: Get a profile by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateProfile
+      tags: [profiles]
+      summary: Update a profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /profiles:
+    post:
+      operationId: upsertProfile
+      tags: [profiles]
+      summary: Create or update a profile (called after signup)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "200":
+          description: Upserted profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /artists:
+    get:
+      operationId: listArtists
+      tags: [artists]
+      summary: List artists
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: genre
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: mood
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Artists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artist"
+    post:
+      operationId: createArtist
+      tags: [artists]
+      summary: Create an artist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArtistInput"
+      responses:
+        "201":
+          description: Created artist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+  /artists/{id}:
+    get:
+      operationId: getArtist
+      tags: [artists]
+      summary: Get an artist by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Artist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateArtist
+      tags: [artists]
+      summary: Update an artist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArtistUpdate"
+      responses:
+        "200":
+          description: Updated artist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /venues:
+    get:
+      operationId: listVenues
+      tags: [venues]
+      summary: List venues
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Venues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Venue"
+    post:
+      operationId: createVenue
+      tags: [venues]
+      summary: Create a venue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VenueInput"
+      responses:
+        "201":
+          description: Created venue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+  /venues/{id}:
+    get:
+      operationId: getVenue
+      tags: [venues]
+      summary: Get a venue by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Venue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateVenue
+      tags: [venues]
+      summary: Update a venue
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VenueUpdate"
+      responses:
+        "200":
+          description: Updated venue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List events
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: artistId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: venueId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: city
+          in: query
+          required: false
+          description: Filter to events whose venue is in this city (case-insensitive)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+  /events/{id}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      summary: Get an event by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update an event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventUpdate"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /artists/{id}/profile:
+    get:
+      operationId: getArtistProfile
+      tags: [artists]
+      summary: Get a full artist profile with analysis, tags, links, media, and recent events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Artist profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /artists/{id}/enrich:
+    post:
+      operationId: enrichArtist
+      tags: [artists]
+      summary: Trigger the enrichment pipeline for an artist (audio + lyric analysis)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrichArtistInput"
+      responses:
+        "202":
+          description: Enrichment accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrichArtistResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /discovery/tags:
+    get:
+      operationId: listDiscoveryTags
+      tags: [discovery]
+      summary: List available discovery tags (genres, moods, themes) with counts
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [genre, mood, theme]
+      responses:
+        "200":
+          description: Discovery tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiscoveryTag"
+  /discovery/artists:
+    get:
+      operationId: discoverArtists
+      tags: [discovery]
+      summary: Discover artists by mood, genre, and free-text search across analysis
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: genre
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: mood
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: theme
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching artists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artist"
+
+  /map/pins:
+    get:
+      operationId: getMapPins
+      tags: [discovery]
+      summary: Get geolocated pins for artists, venues, and events
+      responses:
+        "200":
+          description: Map pins
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MapPins"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [discovery]
+      summary: Get dashboard summary metrics and highlights
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /profiles/{id}/artist:
+    get:
+      operationId: getMyArtist
+      tags: [profiles]
+      summary: Get the artist record owned by this profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Artist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /profiles/{id}/venue:
+    get:
+      operationId: getMyVenue
+      tags: [profiles]
+      summary: Get the venue record owned by this profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Venue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /profiles/{id}/follows:
+    get:
+      operationId: listFollowedArtists
+      tags: [profiles]
+      summary: List the artists a user follows
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Followed artists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artist"
+  /profiles/{id}/follows/{artistId}:
+    get:
+      operationId: getFollowStatus
+      tags: [profiles]
+      summary: Whether a user follows an artist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Follow status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowStatus"
+    put:
+      operationId: followArtist
+      tags: [profiles]
+      summary: Follow an artist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Follow status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowStatus"
+    delete:
+      operationId: unfollowArtist
+      tags: [profiles]
+      summary: Unfollow an artist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Follow status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowStatus"
+
+  /artists/{id}/media:
+    post:
+      operationId: addArtistMedia
+      tags: [artists]
+      summary: Add a media item (photo/video) to an artist gallery
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaInput"
+      responses:
+        "201":
+          description: Created media
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistMedia"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /artists/{id}/media/{mediaId}:
+    delete:
+      operationId: deleteArtistMedia
+      tags: [artists]
+      summary: Delete an artist media item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
+
+  /venues/{id}/media:
+    get:
+      operationId: listVenueMedia
+      tags: [venues]
+      summary: List a venue's media gallery
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Venue media
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VenueMedia"
+    post:
+      operationId: addVenueMedia
+      tags: [venues]
+      summary: Add a media item (photo/video) to a venue gallery
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaInput"
+      responses:
+        "201":
+          description: Created media
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VenueMedia"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /venues/{id}/media/{mediaId}:
+    delete:
+      operationId: deleteVenueMedia
+      tags: [venues]
+      summary: Delete a venue media item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
+
+  /artists/{id}/collaborations:
+    get:
+      operationId: listArtistCollaborations
+      tags: [artists]
+      summary: List collaboration requests involving this artist (incoming & outgoing)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Collaboration requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CollaborationRequest"
+  /collaborations:
+    post:
+      operationId: createCollaborationRequest
+      tags: [artists]
+      summary: Send a collaboration request to another artist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollaborationRequestInput"
+      responses:
+        "201":
+          description: Created collaboration request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollaborationRequest"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /collaborations/{id}:
+    patch:
+      operationId: updateCollaborationRequest
+      tags: [artists]
+      summary: Accept or decline a collaboration request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollaborationRequestUpdate"
+      responses:
+        "200":
+          description: Updated collaboration request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollaborationRequest"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Profile:
+      type: object
+      required: [id, email, role, createdAt]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [fan, artist, venue, label, admin]
+        displayName:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+    ProfileInput:
+      type: object
+      required: [id, email]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [fan, artist, venue, label, admin]
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        bio:
+          type: string
+        city:
+          type: string
+        websiteUrl:
+          type: string
+    ProfileUpdate:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [fan, artist, venue, label, admin]
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        bio:
+          type: string
+        city:
+          type: string
+        websiteUrl:
+          type: string
+
+    Artist:
+      type: object
+      required: [id, artistName, genres, moodTags, themes, verified, createdAt]
+      properties:
+        id:
+          type: string
+        profileId:
+          type: ["string", "null"]
+        artistName:
+          type: string
+        bio:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        genres:
+          type: array
+          items:
+            type: string
+        moodTags:
+          type: array
+          items:
+            type: string
+        themes:
+          type: array
+          items:
+            type: string
+        city:
+          type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        spotifyUrl:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        youtubeUrl:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        verified:
+          type: boolean
+        createdAt:
+          type: string
+    ArtistInput:
+      type: object
+      required: [artistName]
+      properties:
+        profileId:
+          type: string
+        artistName:
+          type: string
+          minLength: 1
+        bio:
+          type: string
+        summary:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+        moodTags:
+          type: array
+          items:
+            type: string
+        themes:
+          type: array
+          items:
+            type: string
+        city:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        imageUrl:
+          type: string
+        spotifyUrl:
+          type: string
+        instagramUrl:
+          type: string
+        youtubeUrl:
+          type: string
+        websiteUrl:
+          type: string
+    ArtistUpdate:
+      type: object
+      properties:
+        artistName:
+          type: string
+          minLength: 1
+        bio:
+          type: string
+        summary:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+        moodTags:
+          type: array
+          items:
+            type: string
+        themes:
+          type: array
+          items:
+            type: string
+        city:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        imageUrl:
+          type: string
+        spotifyUrl:
+          type: string
+        instagramUrl:
+          type: string
+        youtubeUrl:
+          type: string
+        websiteUrl:
+          type: string
+        verified:
+          type: boolean
+
+    Venue:
+      type: object
+      required: [id, name, createdAt]
+      properties:
+        id:
+          type: string
+        profileId:
+          type: ["string", "null"]
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        capacity:
+          type: ["integer", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+    VenueInput:
+      type: object
+      required: [name]
+      properties:
+        profileId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        capacity:
+          type: integer
+        imageUrl:
+          type: string
+        websiteUrl:
+          type: string
+        instagramUrl:
+          type: string
+    VenueUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        capacity:
+          type: integer
+        imageUrl:
+          type: string
+        websiteUrl:
+          type: string
+        instagramUrl:
+          type: string
+
+    Event:
+      type: object
+      required: [id, name, eventDate, status, createdAt]
+      properties:
+        id:
+          type: string
+        venueId:
+          type: ["string", "null"]
+        artistId:
+          type: ["string", "null"]
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        eventDate:
+          type: string
+        status:
+          type: string
+          enum: [upcoming, live, past, cancelled]
+        imageUrl:
+          type: ["string", "null"]
+        ticketUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+    EventInput:
+      type: object
+      required: [name, eventDate]
+      properties:
+        venueId:
+          type: string
+        artistId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        eventDate:
+          type: string
+        status:
+          type: string
+          enum: [upcoming, live, past, cancelled]
+        imageUrl:
+          type: string
+        ticketUrl:
+          type: string
+    EventUpdate:
+      type: object
+      properties:
+        venueId:
+          type: string
+        artistId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        eventDate:
+          type: string
+        status:
+          type: string
+          enum: [upcoming, live, past, cancelled]
+        imageUrl:
+          type: string
+        ticketUrl:
+          type: string
+
+    ArtistAudioAnalysis:
+      type: object
+      required: [id, artistId, genres, moods, source, analyzedAt]
+      properties:
+        id:
+          type: string
+        artistId:
+          type: string
+        energy:
+          type: ["number", "null"]
+        danceability:
+          type: ["number", "null"]
+        valence:
+          type: ["number", "null"]
+        acousticness:
+          type: ["number", "null"]
+        instrumentalness:
+          type: ["number", "null"]
+        tempo:
+          type: ["number", "null"]
+        loudness:
+          type: ["number", "null"]
+        musicalKey:
+          type: ["string", "null"]
+        mode:
+          type: ["string", "null"]
+        genres:
+          type: array
+          items:
+            type: string
+        moods:
+          type: array
+          items:
+            type: string
+        source:
+          type: string
+        analyzedAt:
+          type: string
+
+    ArtistLyricAnalysis:
+      type: object
+      required: [id, artistId, themes, keywords, source, analyzedAt]
+      properties:
+        id:
+          type: string
+        artistId:
+          type: string
+        themes:
+          type: array
+          items:
+            type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        sentiment:
+          type: ["string", "null"]
+        sentimentScore:
+          type: ["number", "null"]
+        language:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        source:
+          type: string
+        analyzedAt:
+          type: string
+
+    ArtistTag:
+      type: object
+      required: [id, artistId, tag, type, score]
+      properties:
+        id:
+          type: string
+        artistId:
+          type: string
+        tag:
+          type: string
+        type:
+          type: string
+        score:
+          type: number
+        source:
+          type: string
+
+    ArtistLink:
+      type: object
+      required: [id, artistId, type, url, sortOrder]
+      properties:
+        id:
+          type: string
+        artistId:
+          type: string
+        type:
+          type: string
+        url:
+          type: string
+        label:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+
+    ArtistMedia:
+      type: object
+      required: [id, artistId, type, url, sortOrder]
+      properties:
+        id:
+          type: string
+        artistId:
+          type: string
+        type:
+          type: string
+        url:
+          type: string
+        thumbnailUrl:
+          type: ["string", "null"]
+        caption:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+
+    ArtistProfile:
+      type: object
+      required: [artist, tags, links, media, recentEvents]
+      properties:
+        artist:
+          $ref: "#/components/schemas/Artist"
+        audioAnalysis:
+          oneOf:
+            - $ref: "#/components/schemas/ArtistAudioAnalysis"
+            - type: "null"
+        lyricAnalysis:
+          oneOf:
+            - $ref: "#/components/schemas/ArtistLyricAnalysis"
+            - type: "null"
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistTag"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistLink"
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistMedia"
+        recentEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+
+    EnrichArtistInput:
+      type: object
+      properties:
+        spotifyUrl:
+          type: string
+
+    EnrichArtistResult:
+      type: object
+      required: [artistId, status]
+      properties:
+        artistId:
+          type: string
+        status:
+          type: string
+          enum: [queued, dispatched, skipped]
+        message:
+          type: string
+
+    DiscoveryTag:
+      type: object
+      required: [tag, type, count]
+      properties:
+        tag:
+          type: string
+        type:
+          type: string
+        count:
+          type: integer
+
+    MapPin:
+      type: object
+      required: [id, kind, name, latitude, longitude]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [artist, venue, event]
+        name:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        city:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+    MapPins:
+      type: object
+      required: [pins]
+      properties:
+        pins:
+          type: array
+          items:
+            $ref: "#/components/schemas/MapPin"
+
+    DashboardSummary:
+      type: object
+      required:
+        - artistCount
+        - venueCount
+        - eventCount
+        - upcomingEventCount
+        - featuredArtists
+        - upcomingEvents
+      properties:
+        artistCount:
+          type: integer
+        venueCount:
+          type: integer
+        eventCount:
+          type: integer
+        upcomingEventCount:
+          type: integer
+        featuredArtists:
+          type: array
+          items:
+            $ref: "#/components/schemas/Artist"
+        upcomingEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+
+    FollowStatus:
+      type: object
+      required: [following]
+      properties:
+        following:
+          type: boolean
+
+    DeleteResult:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+    MediaInput:
+      type: object
+      required: [url]
+      properties:
+        type:
+          type: string
+          enum: [image, video]
+        url:
+          type: string
+          minLength: 1
+        thumbnailUrl:
+          type: string
+        caption:
+          type: string
+        sortOrder:
+          type: integer
+
+    VenueMedia:
+      type: object
+      required: [id, venueId, type, url, sortOrder]
+      properties:
+        id:
+          type: string
+        venueId:
+          type: string
+        type:
+          type: string
+        url:
+          type: string
+        thumbnailUrl:
+          type: ["string", "null"]
+        caption:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+
+    CollaborationRequest:
+      type: object
+      required: [id, fromArtistId, toArtistId, status, createdAt]
+      properties:
+        id:
+          type: string
+        fromArtistId:
+          type: string
+        toArtistId:
+          type: string
+        fromArtistName:
+          type: ["string", "null"]
+        toArtistName:
+          type: ["string", "null"]
+        message:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, accepted, declined]
+        createdAt:
+          type: string
+    CollaborationRequestInput:
+      type: object
+      required: [fromArtistId, toArtistId]
+      properties:
+        fromArtistId:
+          type: string
+        toArtistId:
+          type: string
+        message:
+          type: string
+    CollaborationRequestUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [accepted, declined]

@@ -1,0 +1,67 @@
+{
+  "name": "ScenePulse — Daily Artist Refresh",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 4 * * *" }]
+        }
+      },
+      "id": "schedule-daily",
+      "name": "Every Day 04:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SCENEPULSE_API_URL }}/api/artists",
+        "options": {}
+      },
+      "id": "fetch-artists",
+      "name": "Fetch Artists",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": { "options": {} },
+      "id": "split-artists",
+      "name": "Split Out Artists",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "notes": "Splits the artists array into one item per artist."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SCENEPULSE_API_URL }}/api/artists/{{ $json.id }}/enrich",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}",
+        "options": {}
+      },
+      "id": "trigger-enrich",
+      "name": "Queue Enrichment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "notes": "Re-queues each artist through the Artist Enrichment Engine. Safe to run daily; analysis rows are versioned by analyzedAt."
+    }
+  ],
+  "connections": {
+    "Every Day 04:00": {
+      "main": [[{ "node": "Fetch Artists", "type": "main", "index": 0 }]]
+    },
+    "Fetch Artists": {
+      "main": [[{ "node": "Split Out Artists", "type": "main", "index": 0 }]]
+    },
+    "Split Out Artists": {
+      "main": [[{ "node": "Queue Enrichment", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "scenepulse" }]
+}

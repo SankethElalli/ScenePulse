@@ -1,0 +1,6 @@
+- [ScenePulse architecture](scenepulse-arch.md) — monorepo: api-server (Express+Drizzle), scenepulse (React+Vite+shadcn+wouter), Supabase DB+Auth
+- [Map pins local/global toggle](map-toggle.md) — Local mode filters pins by profile.city; global shows all; no geocoding needed on frontend
+- [Leaflet.heat ESM crash](leaflet-heat-esm.md) — static import breaks Vite ESM; must dynamic import after setting window.L = L
+- [JamBase bbox limit](jambase-bbox.md) — API returns HTTP 400 for bounding boxes > ~25°; guard in route, return empty gracefully
+- [JamBase images + global pins](jambase-images.md) — jambase.com images 403 behind Cloudflare challenge (can't proxy); always render gradient+initial fallback; Global artists/venues derived from events
+- [Cyanite integration](cyanite-integration.md) — Spotify audio analysis (mood/genre) is plan-gated → NotAuthorized on basic tokens (not a bug); Similarity Search works without it; webhook needs 200+HMAC-SHA512

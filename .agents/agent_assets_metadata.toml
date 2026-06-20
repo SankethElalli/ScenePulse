@@ -1,0 +1,68 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "yaQ1S3fOC0m2a3ZFuCb1-"
+uri = "file://artifacts/scenepulse/public/hero-concert.png"
+type = "image"
+title = "Hero concert image"
+
+[[generated]]
+id = "iIiesDzhoVfrw-YBACh5Q"
+uri = "file://artifacts/scenepulse/public/seed/artist-neon-tigers.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "iHEVUh-eVEOIOPstMkhbV"
+uri = "file://artifacts/scenepulse/public/seed/artist-ananya.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "xpwOfBiYnhUJVC8zxtdq3"
+uri = "file://artifacts/scenepulse/public/seed/artist-basswala.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "vJL2XJYE4u5UDIJVyk0Ny"
+uri = "file://artifacts/scenepulse/public/seed/artist-filter-coffee.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "cmBgweoG3PzIr8DQPXMOV"
+uri = "file://artifacts/scenepulse/public/seed/venue-social.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "WT5nU3Ez_G3J2e-JIgj9w"
+uri = "file://artifacts/scenepulse/public/seed/venue-humming-tree.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "QdWzuVxpBzlc7Z4JQnDVx"
+uri = "file://artifacts/scenepulse/public/seed/venue-fandom.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "NVmcoUeNhzjHXYdN-cQ0x"
+uri = "file://artifacts/scenepulse/public/seed/event-rock-night.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "5yg1cFTq3GyEAE0ryMudE"
+uri = "file://artifacts/scenepulse/public/seed/event-bass-drop.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "yvxdjkhTScry_0I5EKHwU"
+uri = "file://artifacts/scenepulse/public/seed/event-jazz-evening.png"
+type = "image"
+title = "generated_image"

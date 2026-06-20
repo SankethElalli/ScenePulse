@@ -1,0 +1,66 @@
+{
+  "name": "ScenePulse — Artist Creation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scenepulse/artist-created",
+        "options": {}
+      },
+      "id": "webhook-artist-created",
+      "name": "On Artist Created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "scenepulse-artist-created"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "artist.created",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-event",
+      "name": "Is artist.created",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SCENEPULSE_API_URL }}/api/webhooks/n8n/artist.verify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{ $env.N8N_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ artistId: $json.body.payload.id }) }}",
+        "options": {}
+      },
+      "id": "callback-verify",
+      "name": "Mark Artist Verified",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 220]
+    }
+  ],
+  "connections": {
+    "On Artist Created": { "main": [[{ "node": "Is artist.created", "type": "main", "index": 0 }]] },
+    "Is artist.created": { "main": [[{ "node": "Mark Artist Verified", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "scenepulse" }]
+}

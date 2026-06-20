@@ -1,0 +1,62 @@
+{
+  "name": "ScenePulse — User Signup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scenepulse/user-signup",
+        "options": {}
+      },
+      "id": "webhook-user-signup",
+      "name": "On User Signup",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "scenepulse-user-signup"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "user.signup",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-event",
+      "name": "Is user.signup",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "userId", "value": "={{ $json.body.payload.id }}", "type": "string" },
+            { "id": "a2", "name": "email", "value": "={{ $json.body.payload.email }}", "type": "string" },
+            { "id": "a3", "name": "role", "value": "={{ $json.body.payload.role }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "shape-welcome",
+      "name": "Build Welcome Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [720, 220]
+    }
+  ],
+  "connections": {
+    "On User Signup": { "main": [[{ "node": "Is user.signup", "type": "main", "index": 0 }]] },
+    "Is user.signup": { "main": [[{ "node": "Build Welcome Payload", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "scenepulse" }]
+}
