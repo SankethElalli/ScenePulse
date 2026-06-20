@@ -13,6 +13,7 @@ import musixmatchRouter from "./musixmatch";
 import jambaseRouter from "./jambase";
 import songstatsRouter from "./songstats";
 import imagesRouter from "./images";
+import spotifyRouter from "./spotify";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(musixmatchRouter);
 router.use(jambaseRouter);
 router.use(songstatsRouter);
 router.use(imagesRouter);
+router.use(spotifyRouter);
 
 export default router;

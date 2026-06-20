@@ -1112,6 +1112,7 @@ export default function MapShell() {
         <KaraokeModal
           artistName={karaokePin.name}
           artistImageUrl={karaokePin.imageUrl}
+          spotifyUrl={karaokePin.spotifyUrl ?? undefined}
           onClose={() => setKaraokePin(null)}
         />
       )}

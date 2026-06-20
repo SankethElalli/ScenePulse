@@ -441,7 +441,7 @@ export const SceneMap = forwardRef<
 
         {/* Heatmap overlay — always rendered when showHeatmap is true */}
         {showHeatmap && <HeatmapLayer points={heatPoints.length > 0 ? heatPoints : [
-          ...pins.map(p => [p.latitude, p.longitude, 0.5] as HeatPoint),
+          ...pins.filter(p => p.kind === "artist" && p.spotifyUrl).map(p => [p.latitude, p.longitude, 0.5] as HeatPoint),
           ...jambasePins.map(p => [p.latitude, p.longitude, 1.0] as HeatPoint),
         ]} />}
 

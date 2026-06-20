@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Play, Pause, Music2, ExternalLink } from "lucide-react";
+import { X, Play, Pause, Music2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MxTrack {
@@ -15,6 +15,15 @@ interface LyricsData {
   track: MxTrack;
   synced: { lrc: string; durationSeconds: number } | null;
   plain: { lyricsBody: string; copyright: string } | null;
+}
+
+interface SpotifyTopTrack {
+  trackId: string;
+  trackName: string;
+  previewUrl: string | null;
+  externalUrl: string;
+  albumImageUrl: string | null;
+  durationMs: number;
 }
 
 interface LyricLine {
@@ -48,24 +57,59 @@ function formatTime(s: number) {
   return `${m}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 }
 
+function extractSpotifyArtistId(url: string): string | null {
+  const m = url.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?artist\/([A-Za-z0-9]{10,})/);
+  return m?.[1] ?? null;
+}
+
 interface Props {
   artistName: string;
   artistImageUrl?: string | null;
+  spotifyUrl?: string | null;
   onClose: () => void;
 }
 
-export function KaraokeModal({ artistName, artistImageUrl, onClose }: Props) {
+export function KaraokeModal({ artistName, artistImageUrl, spotifyUrl, onClose }: Props) {
+  const [spotifyTrack, setSpotifyTrack] = useState<SpotifyTopTrack | null>(null);
+  const [spotifyLoading, setSpotifyLoading] = useState(false);
+
   const [data, setData] = useState<LyricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Manual playhead for syncing lyrics when user plays the Spotify embed.
   const [isPlaying, setIsPlaying] = useState(false);
   const [playhead, setPlayhead] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Step 1: if we have a spotifyUrl, fetch the real top track first.
   useEffect(() => {
+    if (!spotifyUrl) return;
+    const artistId = extractSpotifyArtistId(spotifyUrl);
+    if (!artistId) return;
+
+    setSpotifyLoading(true);
+    fetch(`/api/spotify/top-track?artistId=${encodeURIComponent(artistId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: SpotifyTopTrack | null) => {
+        setSpotifyTrack(d);
+        setSpotifyLoading(false);
+      })
+      .catch(() => setSpotifyLoading(false));
+  }, [spotifyUrl]);
+
+  // Step 2: fetch lyrics — once spotify track is known (or immediately if no Spotify URL).
+  useEffect(() => {
+    if (spotifyLoading) return; // wait for Spotify to resolve first
     setLoading(true);
     setFetchError(null);
-    fetch(`/api/musixmatch/synced-lyrics?artist=${encodeURIComponent(artistName)}`)
+
+    const trackName = spotifyTrack?.trackName;
+    const url = trackName
+      ? `/api/musixmatch/synced-lyrics?artist=${encodeURIComponent(artistName)}&trackName=${encodeURIComponent(trackName)}`
+      : `/api/musixmatch/synced-lyrics?artist=${encodeURIComponent(artistName)}`;
+
+    fetch(url)
       .then((r) => r.json())
       .then((d: LyricsData & { error?: string }) => {
         if (d.error) setFetchError(d.error);
@@ -76,7 +120,7 @@ export function KaraokeModal({ artistName, artistImageUrl, onClose }: Props) {
         setFetchError("Could not connect to lyrics service");
         setLoading(false);
       });
-  }, [artistName]);
+  }, [artistName, spotifyTrack, spotifyLoading]);
 
   const lyrics: LyricLine[] = data
     ? data.synced
@@ -87,7 +131,8 @@ export function KaraokeModal({ artistName, artistImageUrl, onClose }: Props) {
     : [];
 
   const isSynced = Boolean(data?.synced);
-  const duration = data?.synced?.durationSeconds ?? lyrics.length * 3.5;
+  const duration = data?.synced?.durationSeconds
+    ?? (spotifyTrack ? spotifyTrack.durationMs / 1000 : lyrics.length * 3.5);
 
   const currentIdx = lyrics.length
     ? isSynced
@@ -113,26 +158,26 @@ export function KaraokeModal({ artistName, artistImageUrl, onClose }: Props) {
   }, [isPlaying, duration]);
 
   const toggle = useCallback(() => setIsPlaying((p) => !p), []);
-
   const progressPct = duration > 0 ? Math.min((playhead / duration) * 100, 100) : 0;
 
-  const ytQuery = data?.track
-    ? `${data.track.trackName} ${data.track.artistName}`
-    : artistName;
-  const spotifyQuery = data?.track
-    ? `${data.track.trackName} ${data.track.artistName}`
-    : artistName;
+  // The displayed track info: prefer what Spotify returned over what Musixmatch found.
+  const displayTrackName = spotifyTrack?.trackName ?? data?.track?.trackName;
+  const displayArtistName = data?.track?.artistName ?? artistName;
+  const displayAlbumName = data?.track?.albumName;
+
+  // Background image: prefer Spotify album art if available.
+  const bgImage = spotifyTrack?.albumImageUrl ?? artistImageUrl;
 
   return (
     <div
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      {artistImageUrl ? (
+      {bgImage ? (
         <div
           className="absolute inset-0 scale-110"
           style={{
-            backgroundImage: `url('${artistImageUrl}')`,
+            backgroundImage: `url('${bgImage}')`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             filter: "blur(24px) brightness(0.2)",
@@ -155,17 +200,17 @@ export function KaraokeModal({ artistName, artistImageUrl, onClose }: Props) {
 
         {/* Track info */}
         <div className="text-center">
-          {data?.track ? (
+          {displayTrackName ? (
             <>
               <p className="text-white/40 text-[10px] uppercase tracking-[0.2em] mb-1">
                 Synced Lyrics
               </p>
               <h2 className="text-white font-bold text-lg sm:text-2xl leading-tight">
-                {data.track.trackName}
+                {displayTrackName}
               </h2>
-              <p className="text-white/50 text-sm mt-0.5">{data.track.artistName}</p>
-              {data.track.albumName && (
-                <p className="text-white/30 text-xs mt-0.5">{data.track.albumName}</p>
+              <p className="text-white/50 text-sm mt-0.5">{displayArtistName}</p>
+              {displayAlbumName && (
+                <p className="text-white/30 text-xs mt-0.5">{displayAlbumName}</p>
               )}
             </>
           ) : (
@@ -173,41 +218,31 @@ export function KaraokeModal({ artistName, artistImageUrl, onClose }: Props) {
           )}
         </div>
 
-        {/* Listen on external platforms */}
-        {!loading && !fetchError && data?.track && (
-          <div className="flex items-center gap-2">
-            <span className="text-white/30 text-[10px] uppercase tracking-wider">Listen on</span>
-            <a
-              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ytQuery)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              <ExternalLink className="h-2.5 w-2.5" />
-              YouTube
-            </a>
-            <a
-              href={`https://open.spotify.com/search/${encodeURIComponent(spotifyQuery)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              <ExternalLink className="h-2.5 w-2.5" />
-              Spotify
-            </a>
+        {/* Spotify embed — real audio playback */}
+        {spotifyTrack?.trackId && (
+          <div className="w-full rounded-xl overflow-hidden">
+            <iframe
+              src={`https://open.spotify.com/embed/track/${spotifyTrack.trackId}?utm_source=generator&theme=0`}
+              width="100%"
+              height="80"
+              frameBorder="0"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy"
+              className="rounded-xl"
+            />
           </div>
         )}
 
-        {/* Tip when not yet playing */}
-        {!loading && !fetchError && lyrics.length > 0 && !isPlaying && playhead === 0 && (
+        {/* Hint: tap play below to follow lyrics in sync */}
+        {!loading && !fetchError && lyrics.length > 0 && !isPlaying && playhead === 0 && spotifyTrack && (
           <p className="text-white/30 text-xs text-center">
-            Open the song on YouTube or Spotify, then tap ▶ to follow along
+            Start the song above, then tap ▶ below to follow along with lyrics
           </p>
         )}
 
         {/* Lyrics window */}
-        <div className="h-56 sm:h-64 w-full flex flex-col items-center justify-center gap-3 sm:gap-4 text-center select-none">
-          {loading && (
+        <div className="h-48 sm:h-56 w-full flex flex-col items-center justify-center gap-3 sm:gap-4 text-center select-none">
+          {(loading || spotifyLoading) && (
             <div className="flex gap-1.5">
               {[0, 1, 2].map((i) => (
                 <div
@@ -218,19 +253,19 @@ export function KaraokeModal({ artistName, artistImageUrl, onClose }: Props) {
               ))}
             </div>
           )}
-          {!loading && fetchError && (
+          {!loading && !spotifyLoading && fetchError && (
             <div className="flex flex-col items-center gap-3">
               <Music2 className="h-10 w-10 text-white/20" />
               <p className="text-white/40 text-sm">{fetchError}</p>
             </div>
           )}
-          {!loading && !fetchError && lyrics.length === 0 && (
+          {!loading && !spotifyLoading && !fetchError && lyrics.length === 0 && (
             <div className="flex flex-col items-center gap-3">
               <Music2 className="h-10 w-10 text-white/20" />
               <p className="text-white/40 text-sm">No lyrics found for this artist</p>
             </div>
           )}
-          {!loading && !fetchError && lyrics.length > 0 &&
+          {!loading && !spotifyLoading && !fetchError && lyrics.length > 0 &&
             Array.from({ length: 7 }, (_, offset) => {
               const idx = currentIdx - 3 + offset;
               const diff = offset - 3;
@@ -249,15 +284,15 @@ export function KaraokeModal({ artistName, artistImageUrl, onClose }: Props) {
                           : "text-white/10 text-xs",
                   )}
                 >
-                  {line?.text ?? "\u00A0"}
+                  {line?.text ?? " "}
                 </div>
               );
             })
           }
         </div>
 
-        {/* Playback controls */}
-        {!loading && !fetchError && lyrics.length > 0 && (
+        {/* Lyrics sync controls */}
+        {!loading && !spotifyLoading && !fetchError && lyrics.length > 0 && (
           <div className="w-full flex flex-col items-center gap-3">
             <div
               className="w-full h-1 bg-white/15 rounded-full overflow-hidden cursor-pointer"
@@ -279,6 +314,7 @@ export function KaraokeModal({ artistName, artistImageUrl, onClose }: Props) {
               <button
                 onClick={toggle}
                 className="h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-colors active:scale-95"
+                title={isPlaying ? "Pause lyrics scroll" : "Start lyrics scroll"}
               >
                 {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
               </button>

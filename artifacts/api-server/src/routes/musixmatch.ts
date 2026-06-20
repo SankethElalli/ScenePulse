@@ -28,8 +28,8 @@ router.get("/musixmatch/search", async (req, res) => {
   res.json({ tracks, artistNames });
 });
 
-// GET /musixmatch/synced-lyrics?artist=<name>
-// Fetches LRC synced lyrics for the artist's top Musixmatch track.
+// GET /musixmatch/synced-lyrics?artist=<name>[&trackName=<name>]
+// Fetches LRC synced lyrics for a specific track or the artist's top Musixmatch track.
 // Falls back to plain lyrics when subtitles are unavailable.
 router.get("/musixmatch/synced-lyrics", async (req, res) => {
   const artist =
@@ -38,8 +38,20 @@ router.get("/musixmatch/synced-lyrics", async (req, res) => {
     res.status(400).json({ error: "artist is required (max 200 chars)" });
     return;
   }
+  const trackNameHint =
+    typeof req.query.trackName === "string" ? req.query.trackName.trim() : "";
 
-  const track = await getTopTrackByArtist(artist);
+  // If caller provides the exact track name (from Spotify top-track), prefer that.
+  let track: Awaited<ReturnType<typeof getTopTrackByArtist>> = null;
+  if (trackNameHint) {
+    const candidates = await searchByTheme(`${trackNameHint} ${artist}`, 5);
+    track = candidates.find(
+      (t) => t.artistName.toLowerCase().includes(artist.toLowerCase()),
+    ) ?? null;
+  }
+
+  // Fall back to the artist's generic top track from Musixmatch.
+  if (!track) track = await getTopTrackByArtist(artist);
   if (!track) {
     res.status(404).json({ error: "Artist not found on Musixmatch" });
     return;

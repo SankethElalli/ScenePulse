@@ -158,8 +158,8 @@ router.get("/map/pins", async (req, res) => {
 });
 
 // GET /map/heatmap — returns artist pins with Songstats-based traction weights.
-// traction is 0–1; artists with real Spotify IDs get weighted by monthly listeners,
-// others fall back to 0.4. Used by the frontend heatmap overlay.
+// Only artists with a Spotify URL are included; traction is 0–1 weighted by
+// monthly listeners. Artists without a Spotify URL are excluded entirely.
 router.get("/map/heatmap", async (_req, res) => {
   const artists = await db
     .select({
@@ -171,7 +171,13 @@ router.get("/map/heatmap", async (_req, res) => {
       verified: artistsTable.verified,
     })
     .from(artistsTable)
-    .where(and(isNotNull(artistsTable.latitude), isNotNull(artistsTable.longitude)));
+    .where(
+      and(
+        isNotNull(artistsTable.latitude),
+        isNotNull(artistsTable.longitude),
+        isNotNull(artistsTable.spotifyUrl),
+      ),
+    );
 
   const { fetchArtistStats } = await import("../lib/songstats");
 
@@ -197,14 +203,16 @@ router.get("/map/heatmap", async (_req, res) => {
       const idx = cursor++;
       const a = artists[idx];
       const spotifyId = extractSpotifyId(a.spotifyUrl ?? null);
-      let traction = a.verified ? 0.5 : 0.3;
+      // All artists here have a spotifyUrl; use 0.2 as the floor while
+      // Songstats data is unavailable or the artist is very small.
+      let traction = 0.2;
       if (spotifyId) {
         try {
           const stats = await withTimeout(fetchArtistStats(spotifyId), 5000);
           if (stats?.monthlyListeners != null && stats.monthlyListeners > 0) {
             traction = Math.min(1.0, 0.1 + (stats.monthlyListeners / 10_000_000) * 0.9);
           }
-        } catch { /* keep default traction */ }
+        } catch { /* keep floor traction */ }
       }
       results[idx] = {
         lat: a.latitude as number,
