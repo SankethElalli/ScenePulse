@@ -7,6 +7,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://YOUR_RENDER_API_URL/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
