@@ -32,7 +32,7 @@ async function uploadBinary(audioUrl: string, trackTitle: string): Promise<strin
     method: "POST",
     headers: {
       "Content-Type": "application/octet-stream",
-      "Content-Disposition": `attachment; filename=${filename}`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
       "X-License-Key": apiKey(),
     },
     body: buffer,
@@ -72,13 +72,17 @@ async function getResult(id: string): Promise<LalalResult> {
   }
   const json = (await res.json()) as {
     status?: string;
+    // lalal.ai v1 uses "split", not "result"
+    split?: { stem_track?: string; back_track?: string };
     result?: { stem_track?: string; back_track?: string };
     error?: string;
   };
+  const urls = json.split ?? json.result;
+  logger.info({ json }, "lalal.ai result payload");
   return {
     status: (json.status ?? "error") as LalalStatus,
-    stemUrl: json.result?.stem_track,
-    backUrl: json.result?.back_track,
+    stemUrl: urls?.stem_track,
+    backUrl: urls?.back_track,
     error: json.error,
   };
 }
