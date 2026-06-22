@@ -411,7 +411,7 @@ export default function MapShell() {
     setMapZoom(bounds.zoom);
     setMapCenter([bounds.centerLat, bounds.centerLng]);
     mapCenterRef.current = [bounds.centerLat, bounds.centerLng];
-    if (globalMode) return; // Global mode fetches worldwide hubs separately
+    if (globalModeRef.current) return; // Global mode fetches worldwide hubs separately
     if (jbDebounceRef.current) clearTimeout(jbDebounceRef.current);
     jbDebounceRef.current = setTimeout(async () => {
       const b = boundsRef.current;
@@ -441,9 +441,12 @@ export default function MapShell() {
     }, 800);
   }, [globalMode]);
 
-  // Global mode: fetch live events from major music hubs worldwide
+  // Global mode: fetch live events from major music hubs worldwide.
+  // Re-runs whenever globalMode or activeFilter changes so switching to "live"
+  // while already in global mode refreshes the data.
   useEffect(() => {
     if (!globalMode) return;
+    if (activeFilter !== "live" && activeFilter !== "all") return;
     // Cancel any pending local viewport fetch so it can't overwrite global pins
     if (jbDebounceRef.current) clearTimeout(jbDebounceRef.current);
     let cancelled = false;
@@ -452,16 +455,21 @@ export default function MapShell() {
     fetch("/api/jambase/events/global")
       .then((r) => r.json() as Promise<{ pins?: JambasePin[] }>)
       .then((json) => {
-        if (!cancelled) setJambasePins(json.pins ?? []);
+        if (!cancelled) {
+          setJambasePins(json.pins ?? []);
+          setBboxTooLarge(false);
+        }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setJambasePins([]);
+      })
       .finally(() => {
         if (!cancelled) setJambaseLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [globalMode]);
+  }, [globalMode, activeFilter]);
 
   // Spotify artist URL detection — works in both normal and vibe mode.
   // Whenever the user pastes an artist URL we fetch Songstats immediately.
@@ -1469,7 +1477,7 @@ export default function MapShell() {
             Loading live shows…
           </span>
         )}
-        {!jambaseLoading && bboxTooLarge && (activeFilter === "live" || activeFilter === "all") && (
+        {!jambaseLoading && bboxTooLarge && !globalMode && (activeFilter === "live" || activeFilter === "all") && (
           <button
             onClick={() => mapRef.current?.flyTo(
               (boundsRef.current ? (boundsRef.current.swLat + boundsRef.current.neLat) / 2 : 20),
