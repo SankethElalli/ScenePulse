@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Fingerprint, Search, X, MapPin, Loader2, Music2, AlertCircle } from "lucide-react";
+import { Fingerprint, Search, X, MapPin, Loader2, Music2, AlertCircle, BookOpen, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ interface MxTrack {
   trackName: string;
   artistName: string;
   albumName: string;
+  hasLyrics: boolean;
 }
 
 interface Props {
@@ -17,12 +18,23 @@ interface Props {
   onFindOnMap: (artistName: string) => void;
 }
 
+interface LyricsModal {
+  track: MxTrack;
+  lyricsBody: string;
+  copyright: string;
+}
+
 export function FingerprintPanel({ open, onClose, onFindOnMap }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MxTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [lyricsModal, setLyricsModal] = useState<LyricsModal | null>(null);
+  const [lyricsLoading, setLyricsLoading] = useState<number | null>(null);
+  const [lyricsError, setLyricsError] = useState<string | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const tooShort = query.trim().length > 0 && query.trim().length < 10;
@@ -33,10 +45,9 @@ export function FingerprintPanel({ open, onClose, onFindOnMap }: Props) {
     setLoading(true);
     setSearched(false);
     setError(null);
+    setLyricsModal(null);
     try {
-      const res = await fetch(
-        `/api/musixmatch/fingerprint?q=${encodeURIComponent(q)}`,
-      );
+      const res = await fetch(`/api/musixmatch/fingerprint?q=${encodeURIComponent(q)}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { error?: string };
         throw new Error(body.error ?? `Server error ${res.status}`);
@@ -55,19 +66,95 @@ export function FingerprintPanel({ open, onClose, onFindOnMap }: Props) {
     if (e.key === "Enter") search();
   };
 
-  const handleFindOnMap = (artistName: string) => {
-    onFindOnMap(artistName);
-    onClose();
+  const handleShowLyrics = async (track: MxTrack) => {
+    setLyricsLoading(track.trackId);
+    setLyricsError(null);
+    try {
+      const params = new URLSearchParams({
+        trackId: String(track.trackId),
+        trackName: track.trackName,
+        artistName: track.artistName,
+      });
+      const res = await fetch(`/api/musixmatch/lyrics?${params}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? "Lyrics not available");
+      }
+      const data = await res.json() as { lyricsBody: string; copyright: string };
+      setLyricsModal({ track, lyricsBody: data.lyricsBody, copyright: data.copyright });
+    } catch (e) {
+      setLyricsError(e instanceof Error ? e.message : "Could not load lyrics");
+    } finally {
+      setLyricsLoading(null);
+    }
   };
 
   if (!open) return null;
 
+  // ── Lyrics modal ──────────────────────────────────────────────────────────
+  if (lyricsModal) {
+    return (
+      <>
+        <div className="fixed inset-0 z-[9000] bg-black/60 backdrop-blur-sm" onClick={() => setLyricsModal(null)} />
+        <div className="fixed inset-x-0 bottom-0 z-[9001] flex justify-center pointer-events-none">
+          <div className="pointer-events-auto w-full max-w-lg rounded-t-3xl glass border border-white/10 shadow-2xl flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="px-5 pt-4 pb-3 flex items-start gap-3 shrink-0 border-b border-white/10">
+              <button
+                onClick={() => setLyricsModal(null)}
+                className="mt-0.5 rounded-full p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground truncate">{lyricsModal.track.trackName}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {lyricsModal.track.artistName}
+                  {lyricsModal.track.albumName ? ` · ${lyricsModal.track.albumName}` : ""}
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="mt-0.5 rounded-full p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Lyrics body */}
+            <div className="overflow-y-auto flex-1 px-5 py-5">
+              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/90">
+                {lyricsModal.lyricsBody.replace(/\*{3,}.*$/s, "").trim()}
+              </pre>
+              {lyricsModal.copyright && (
+                <p className="mt-6 text-[10px] text-muted-foreground/50 leading-snug">
+                  {lyricsModal.copyright}
+                </p>
+              )}
+            </div>
+
+            {/* Footer — find on map */}
+            <div className="px-5 py-4 border-t border-white/10 shrink-0 flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">Lyrics via Musixmatch</p>
+              <Button
+                size="sm"
+                className="gap-1.5 rounded-xl bg-primary text-primary-foreground"
+                onClick={() => { onFindOnMap(lyricsModal.track.artistName); onClose(); }}
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                Find on map
+              </Button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // ── Search panel ──────────────────────────────────────────────────────────
   return (
     <>
-      <div
-        className="fixed inset-0 z-[9000] bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-[9000] bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed bottom-0 inset-x-0 z-[9001] flex justify-center pointer-events-none">
         <div className="pointer-events-auto w-full max-w-lg rounded-t-3xl glass border border-white/10 shadow-2xl px-5 pt-4 pb-safe-bottom pb-8">
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
@@ -133,6 +220,13 @@ export function FingerprintPanel({ open, onClose, onFindOnMap }: Props) {
             </div>
           )}
 
+          {lyricsError && (
+            <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive mb-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {lyricsError}
+            </div>
+          )}
+
           {searched && !error && results.length === 0 && (
             <p className="text-center text-sm text-muted-foreground py-6">
               No matches — try more distinctive words or a longer phrase
@@ -157,15 +251,27 @@ export function FingerprintPanel({ open, onClose, onFindOnMap }: Props) {
                       {track.albumName ? ` · ${track.albumName}` : ""}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="shrink-0 text-primary hover:text-primary hover:bg-primary/10 gap-1.5 rounded-lg h-8 px-2.5"
-                    onClick={() => handleFindOnMap(track.artistName)}
-                  >
-                    <MapPin className="h-3.5 w-3.5" />
-                    <span className="text-xs">Find</span>
-                  </Button>
+                  {track.hasLyrics ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={lyricsLoading === track.trackId}
+                      className="shrink-0 text-primary hover:text-primary hover:bg-primary/10 gap-1.5 rounded-lg h-8 px-2.5"
+                      onClick={() => handleShowLyrics(track)}
+                    >
+                      {lyricsLoading === track.trackId
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <BookOpen className="h-3.5 w-3.5" />
+                      }
+                      <span className="text-xs">
+                        {lyricsLoading === track.trackId ? "Loading…" : "Show"}
+                      </span>
+                    </Button>
+                  ) : (
+                    <span className="shrink-0 text-xs text-muted-foreground/50 px-2">
+                      No lyrics
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

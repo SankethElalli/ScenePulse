@@ -619,14 +619,6 @@ export const SceneMap = forwardRef<
                         View profile
                       </Link>
                     )}
-                    {pin.kind === "artist" && onKaraoke && (
-                      <button onClick={() => onKaraoke(pin)}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: 600, padding: "7px 12px", cursor: "pointer", transition: "background 0.15s" }}
-                        onMouseOver={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")} onMouseOut={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
-                      >
-                        <Mic2 style={{ width: 13, height: 13 }} /> Synced Lyrics
-                      </button>
-                    )}
                   </div>
                 </div>
               </Popup>

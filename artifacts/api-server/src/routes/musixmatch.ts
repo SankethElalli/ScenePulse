@@ -68,6 +68,30 @@ router.get("/musixmatch/synced-lyrics", async (req, res) => {
   res.json({ track, synced, plain: fallback });
 });
 
+// GET /musixmatch/lyrics?trackId=<id>&trackName=<name>&artistName=<name>
+// Fetches full plain lyrics. Falls back to matcher.lyrics.get by name when track_id 404s.
+router.get("/musixmatch/lyrics", async (req, res) => {
+  const raw = req.query.trackId;
+  const trackId = typeof raw === "string" ? parseInt(raw, 10) : NaN;
+  if (!trackId || isNaN(trackId)) {
+    res.status(400).json({ error: "trackId is required and must be a number" });
+    return;
+  }
+  const trackName = typeof req.query.trackName === "string" ? req.query.trackName : undefined;
+  const artistName = typeof req.query.artistName === "string" ? req.query.artistName : undefined;
+  try {
+    const result = await getPlainLyrics(trackId, trackName, artistName);
+    if (!result) {
+      res.status(404).json({ error: "Lyrics not available for this track on Musixmatch" });
+      return;
+    }
+    res.json(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Musixmatch error";
+    res.status(502).json({ error: msg });
+  }
+});
+
 // GET /musixmatch/fingerprint?q=<partial lyrics>
 // Identifies a track from distinctive lyrics heard at a gig.
 router.get("/musixmatch/fingerprint", async (req, res) => {

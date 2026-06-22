@@ -94,21 +94,33 @@ export async function getSyncedLyrics(trackId: number): Promise<{
   };
 }
 
-/** Plain lyrics fallback when synced subtitles are unavailable. */
-export async function getPlainLyrics(trackId: number): Promise<{
-  lyricsBody: string;
-  copyright: string;
-} | null> {
-  const body = (await mxGet("track.lyrics.get", {
-    track_id: trackId,
-  })) as {
-    lyrics?: { lyrics_body: string; lyrics_copyright: string };
-  } | null;
-  if (!body?.lyrics?.lyrics_body) return null;
-  return {
-    lyricsBody: body.lyrics.lyrics_body,
-    copyright: body.lyrics.lyrics_copyright ?? "",
-  };
+type LyricsResult = { lyricsBody: string; copyright: string } | null;
+
+function parseLyricsBody(body: unknown): LyricsResult {
+  const b = body as { lyrics?: { lyrics_body: string; lyrics_copyright: string } } | null;
+  if (!b?.lyrics?.lyrics_body) return null;
+  return { lyricsBody: b.lyrics.lyrics_body, copyright: b.lyrics.lyrics_copyright ?? "" };
+}
+
+/** Plain lyrics — tries track_id first, then matcher.lyrics.get by name as fallback. */
+export async function getPlainLyrics(
+  trackId: number,
+  trackName?: string,
+  artistName?: string,
+): Promise<LyricsResult> {
+  // 1. Try track.lyrics.get with track_id
+  const byId = parseLyricsBody(await mxGet("track.lyrics.get", { track_id: trackId }));
+  if (byId) return byId;
+
+  // 2. Fallback: matcher.lyrics.get by track + artist name (works better on community plan)
+  if (trackName && artistName) {
+    const byName = parseLyricsBody(
+      await mxGet("matcher.lyrics.get", { q_track: trackName, q_artist: artistName }).catch(() => null),
+    );
+    if (byName) return byName;
+  }
+
+  return null;
 }
 
 /** Identify a track from partial lyrics typed by a fan at a live gig. */
